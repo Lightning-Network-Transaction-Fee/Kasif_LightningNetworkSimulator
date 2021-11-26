@@ -166,11 +166,15 @@ class simulator():
 
       if rebalancing_type == -1 : #clockwise
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(rebalancing_amount,src,trg,depleted_graph) 
+          if result_bit == -1 :
+            return 0,0,-1
           if result_bit == 1 :
             path_by_channels = self.nxpath_to_path_by_channels(cheapest_rebalancing_path)
             self.update_base_network(path_by_channels, rebalancing_amount)
       elif rebalancing_type == -2 : #counter-clockwise
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(rebalancing_amount,trg,src,depleted_graph) 
+          if result_bit == -1 :
+            return 0,0,-1
           if result_bit == 1 :
             path_by_channels = self.nxpath_to_path_by_channels(cheapest_rebalancing_path)
             self.update_base_network(path_by_channels, rebalancing_amount)
@@ -190,7 +194,7 @@ class simulator():
               rebalancing_path.insert(0,src) # u -> (v -> u)
       alpha_bar,beta_bar = self.get_total_fee(rebalancing_path)   
       
-      return alpha_bar,beta_bar
+      return alpha_bar,beta_bar,result_bit
       
 
 
@@ -199,10 +203,10 @@ class simulator():
 
   def get_r(self,src,trg,gamma_1,gamma_2,bitcoin_transaction_fee = 5000):
       r = np.zeros(6)
-      r[0],r[4] = self.get_rebalancing_coefficients(rebalancing_type=-1, src=src,trg=trg,rebalancing_amount=gamma_1)
-      r[1],r[5] = self.get_rebalancing_coefficients(rebalancing_type=-2, src=src,trg=trg,rebalancing_amount=gamma_2)
+      r[0],r[4],clockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-1, src=src,trg=trg,rebalancing_amount=gamma_1)
+      r[1],r[5],counterclockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-2, src=src,trg=trg,rebalancing_amount=gamma_2)
       r[2] = bitcoin_transaction_fee
-      return r
+      return r,clockwise_result_bit,counterclockwise_result_bit
 
 
   
@@ -211,8 +215,8 @@ class simulator():
       k = self.get_k(channel_id,transactions)
       tx = simulation_amount*k
       bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg)
-      r = self.get_r(src,trg,action[2],action[3],bitcoin_transaction_fee)
-      return k,tx,r
+      r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,action[2],action[3],bitcoin_transaction_fee)
+      return k,tx,r,clockwise_result_bit,counterclockwise_result_bit
 
 
 
