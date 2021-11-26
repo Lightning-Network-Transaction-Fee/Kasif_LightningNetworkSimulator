@@ -250,7 +250,7 @@ class simulator():
     if onchain_rebalancing_flag==1 : #CHECK : 1 or True
       bitcoin_transaction_fee = self.operate_rebalancing_on_blockchain(onchain_rebalancing_amount)
       index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) ]
-      self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] + amount - bitcoin_transaction_fee  #CHECK
+      self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] + onchain_rebalancing_amount
     print("onchain rebalancing ended successfully!")    
     return bitcoin_transaction_fee
 
