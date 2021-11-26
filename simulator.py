@@ -193,7 +193,7 @@ class simulator():
 
 
       if not rebalancing_path : # loop doesnt exist
-          return 0,0
+          return 0,0,-1
       else :
           if rebalancing_type == -1 : #clockwise
               rebalancing_path[len(rebalancing_path)-1] = rebalancing_path[len(rebalancing_path)-1]
