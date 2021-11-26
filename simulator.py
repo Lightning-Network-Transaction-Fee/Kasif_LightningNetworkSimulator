@@ -259,22 +259,20 @@ class simulator():
   
 
 
-  def run_single_transaction(self,
-                             transaction_id,
-                             amount,
-                             src,trg,
-                             depleted_graph):
-    
-    result_bit = 0
-    path = nx.shortest_path(depleted_graph, source=src, target=trg, weight="weight", method='dijkstra')
-    val = self.get_path_value(path,depleted_graph)
-    if val == math.inf :   
-        result_bit = -1
-        print("Transaction ",transaction_id ," Failed")
-        return None,result_bit
-    
-    result_bit = 1
-    return path,result_bit  
+    def run_single_transaction(self, transaction_id, amount, src, trg, depleted_graph):
+        result_bit = 0
+        try:
+          path = nx.shortest_path(depleted_graph, source=src, target=trg, weight="weight", method='dijkstra')
+        except nx.NetworkXNoPath:
+          return None,-1
+        val = self.get_path_value(path,depleted_graph)
+        if val == math.inf :   
+            result_bit = -1
+            #print("Transaction ",transaction_id ," Failed")
+            return None,result_bit
+
+        result_bit = 1
+        return path,result_bit  
 
 
 
