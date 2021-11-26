@@ -212,8 +212,22 @@ class simulator():
 
   def get_r(self,src,trg,gamma_1,gamma_2,bitcoin_transaction_fee = 5000):
       r = np.zeros(6)
+      print("operating clockwise rebalancing...")
       r[0],r[4],clockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-1, src=src,trg=trg,rebalancing_amount=gamma_1)
+      if clockwise_result_bit == 1 :
+        print("clockwise offchain rebalancing ended successfully!")
+      else :
+        print("clockwise offchain rebalancing failed !")
+
+
+      print("operating counter-clockwise rebalancing...")
       r[1],r[5],counterclockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-2, src=src,trg=trg,rebalancing_amount=gamma_2)
+      if counterclockwise_result_bit == 1 :
+        print("counter clockwise offchain rebalancing ended successfully!")
+      else :
+        print("counter clockwise offchain rebalancing failed !")
+
+
       r[2] = bitcoin_transaction_fee
       return r,clockwise_result_bit,counterclockwise_result_bit
 
@@ -231,11 +245,12 @@ class simulator():
 
   # onchain rebalancing
   def onchain_rebalancing(self,onchain_rebalancing_flag,onchain_rebalancing_amount,src,trg):
+    print("operating onchain rebalancing...")
     if onchain_rebalancing_flag==1 : #CHECK : 1 or True
       bitcoin_transaction_fee = self.operate_rebalancing_on_blockchain(onchain_rebalancing_amount)
       index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) ]
       self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] + amount - bitcoin_transaction_fee  #CHECK
-
+    print("onchain rebalancing ended successfully!")    
     return bitcoin_transaction_fee
 
 
@@ -279,7 +294,8 @@ class simulator():
 
  
   def run_simulation(self, count, amount, action):
-    
+      print("simulating random transactions...")
+      
 
       #Graph Pre-Processing
       temp_network = self.generate_temp_network(amount)
@@ -306,9 +322,8 @@ class simulator():
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
 
-
+      print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
-
 
 
   def sample_providers(self, K):
