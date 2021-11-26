@@ -108,6 +108,15 @@ class simulator():
     return path_by_channels
   
 
+  def set_node_fee(self,src,trg,channel_id,action):
+      alpha = action[0]
+      beta = action[1]
+      index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
+      self.base_network.at[index[0],'fee_rate_milli_msat'] = alpha
+      self.base_network.at[index[0],'fee_base_msat'] = beta
+      
+
+  
   
   def get_balance(self,src,trg,channel_id):
       index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
