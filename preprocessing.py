@@ -86,7 +86,7 @@ def preprocess_json_file(json_file):
       return nodes,directed_df
     
     
- def init_node_params(edges, providers, verbose=True):
+def init_node_params(edges, providers, verbose=True):
     """Initialize source and target distribution of each node in order to drawn transaction at random later."""
     G = nx.from_pandas_edgelist(edges, source="src", target="trg", edge_attr=["capacity"], create_using=nx.DiGraph())
     active_providers = list(set(providers).intersection(set(G.nodes())))
