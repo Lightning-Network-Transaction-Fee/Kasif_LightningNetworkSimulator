@@ -174,14 +174,14 @@ class simulator():
 
 
       if rebalancing_type == -1 : #clockwise
-          cheapest_rebalancing_path,result_bit = self.run_single_transaction(rebalancing_amount,src,trg,depleted_graph) 
+          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,src,trg,depleted_graph) 
           if result_bit == -1 :
             return 0,0,-1
           if result_bit == 1 :
             path_by_channels = self.nxpath_to_path_by_channels(cheapest_rebalancing_path)
             self.update_base_network(path_by_channels, rebalancing_amount)
       elif rebalancing_type == -2 : #counter-clockwise
-          cheapest_rebalancing_path,result_bit = self.run_single_transaction(rebalancing_amount,trg,src,depleted_graph) 
+          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-2,rebalancing_amount,trg,src,depleted_graph) 
           if result_bit == -1 :
             return 0,0,-1
           if result_bit == 1 :
