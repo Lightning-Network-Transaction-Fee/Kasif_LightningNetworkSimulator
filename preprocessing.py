@@ -119,3 +119,12 @@ def initiate_balances(directed_edges) :
             balance = (1-r)*cap
         G.at[index,"balance"] = balance
     return G
+
+
+def set_node_balance(G,src,trg,channel_id,capacity,initial_balance):
+    index = G.index[(G['channel_id']==channel_id)]
+    G.at[index[0],'capacity'] = capacity
+    G.at[index[1],'capacity'] = capacity
+    G.at[index[0],'balance'] = initial_balance
+    G.at[index[1],'balance'] = capacity - initial_balance
+    return G
