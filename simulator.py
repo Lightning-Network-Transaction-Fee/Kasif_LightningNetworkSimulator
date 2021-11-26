@@ -274,7 +274,7 @@ class simulator():
   
 
 
-    def run_single_transaction(self, transaction_id, amount, src, trg, depleted_graph):
+  def run_single_transaction(self, transaction_id, amount, src, trg, depleted_graph):
         result_bit = 0
         try:
           path = nx.shortest_path(depleted_graph, source=src, target=trg, weight="weight", method='dijkstra')
