@@ -92,11 +92,11 @@ class simulator():
   def update_depleted_graph(self,depleted_graph, modified_path, amount):
 
         for (src,trg,channel_id) in modified_path :
-          row_src_trg = self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==src) & (self.base_network['trg']==trg)]
-          row_trg_src = self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)]
+          row_src_trg = self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==src) & (self.base_network['trg']==trg)].iloc[0]
+          row_trg_src = self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)].iloc[0]
 
-          src_balance = row_src_trg.iloc[0]['balance']
-          trg_balance = row_trg_src.iloc[0]['balance']
+          src_balance = row_src_trg['balance']
+          trg_balance = row_trg_src['balance']
 
           if src_balance > amount :
             depleted_graph[src][trg][channel_id]['weight'] = self.calculate_weight(row_src_trg,amount)
