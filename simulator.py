@@ -215,7 +215,7 @@ class simulator():
               return 0,0,-1
             modified_path.insert(0,(src,trg,channel_id))  #convert path to loop
             alpha_bar,beta_bar = self.get_total_fee(modified_path)
-            total_cost = get_total_cost(modified_path, rebalancing_amount)  
+            total_cost = self.get_total_cost(modified_path, rebalancing_amount)  
             self.update_base_network(modified_path, rebalancing_amount+total_cost)
 
 
@@ -232,7 +232,7 @@ class simulator():
               return 0,0,-1
             modified_path.append((trg,src,channel_id)) #convert path to loop
             alpha_bar,beta_bar = self.get_total_fee(modified_path)
-            total_cost = get_total_cost(modified_path, rebalancing_amount)  
+            total_cost = self.get_total_cost(modified_path, rebalancing_amount)  
             self.update_base_network(modified_path, rebalancing_amount+total_cost)
 
    
@@ -363,7 +363,7 @@ class simulator():
 
         if result_bit == 1 : #successful transaction
             modified_path = self.nxpath_to_modified_path(path,depleted_graph)
-            total_cost = get_total_cost(modified_path,amount)  
+            total_cost = self.get_total_cost(modified_path,amount)  
             self.update_base_network(modified_path,amount+total_cost)
             depleted_graph = self.update_depleted_graph(depleted_graph,modified_path,amount)
             transactions.at[index,"result_bit"] = 1
