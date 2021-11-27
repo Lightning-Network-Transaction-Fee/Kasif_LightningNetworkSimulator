@@ -63,7 +63,7 @@ class simulator():
 
 
   def generate_depleted_graph(self,temp_network, amount):
-    nx.from_pandas_edgelist(temp_network, source="src", target="trg", edge_key="channel_id", edge_attr=['weight'], create_using=nx.MultiDiGraph())
+    depleted_graph = nx.from_pandas_edgelist(temp_network, source="src", target="trg", edge_key="channel_id", edge_attr=['weight'], create_using=nx.MultiDiGraph())
     return depleted_graph
 
 
