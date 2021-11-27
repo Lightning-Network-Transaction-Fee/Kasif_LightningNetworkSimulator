@@ -54,8 +54,10 @@ class simulator():
   def generate_temp_network(self,amount) :    #temp_network is just valid at initialization, doesn't get updated after transactions
     temp_network = copy.deepcopy(self.base_network)  
     temp_network = temp_network.assign(weight=None)
-    temp_network['weight'] = temp_network['fee_base_msat'] + temp_network['fee_rate_milli_msat']*amount
-    temp_network[temp_network['balance'] <= amount]['weight'] = math.inf
+    temp_network.loc[:,'weight'] = temp_network['fee_base_msat'] + temp_network['fee_rate_milli_msat']*amount
+    indexes = temp_network.index[temp_network['balance'] <= amount]
+    temp_network.loc[indexes,'weight'] = math.inf
+
     return temp_network
 
 
