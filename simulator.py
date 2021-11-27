@@ -53,17 +53,17 @@ class simulator():
 
   def generate_temp_network(self,amount) :    #temp_network is just valid at initialization, doesn't get updated after transactions
     temp_network = copy.deepcopy(self.base_network)  
-    for index, row in temp_network.iterrows():
-        if row['balance'] <= amount :
-          temp_network.at[index,'fee_base_msat'] = math.inf
+    temp_network = temp_network.assign(weight=None)
+    temp_network['weight'] = temp_network['fee_base_msat'] + temp_network['fee_rate_milli_msat']*amount
+    temp_network[temp_network['balance'] <= amount]['weight'] = math.inf
     return temp_network
 
 
-  def generate_depleted_graph(self,temp_network, amount):
-    depleted_graph = nx.MultiDiGraph()
-    for index, row in temp_network.iterrows():
-        depleted_graph.add_edge(row['src'], row['trg'], key=row['channel_id'] ,weight= self.calculate_weight(row,amount))      
 
+
+
+  def generate_depleted_graph(self,temp_network, amount):
+    nx.from_pandas_edgelist(temp_network, source="src", target="trg", edge_key="channel_id", edge_attr=['weight'], create_using=nx.MultiDiGraph())
     return depleted_graph
 
 
