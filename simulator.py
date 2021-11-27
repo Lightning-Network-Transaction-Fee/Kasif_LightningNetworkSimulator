@@ -112,10 +112,11 @@ class simulator():
   def update_base_network(self,modified_path, amount):
     
     for (src,trg,channel_id) in modified_path:
-      index = self.base_network.index[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==src) & (self.base_network['trg']==trg)]
-      inverse_index = self.base_network.index[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)]
-      self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] - amount
-      self.base_network.at[inverse_index[0],'balance'] = self.base_network.at[inverse_index[0],'balance'] + amount
+      self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==src) & (self.base_network['trg']==trg)]['balance'] = 
+      self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==src) & (self.base_network['trg']==trg)]['balance'] - amount
+
+      self.base_network.index[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)]['balance'] = 
+      self.base_network.index[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)]['balance'] + amount
 
 
 
