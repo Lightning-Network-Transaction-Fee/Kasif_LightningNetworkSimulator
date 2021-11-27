@@ -93,7 +93,7 @@ class simulator():
 
         for (src,trg,channel_id) in modified_path :
           row_src_trg = self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==src) & (self.base_network['trg']==trg)]
-          row_trg_src = self.base_network.index[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)]
+          row_trg_src = self.base_network[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)]
 
           src_balance = row_src_trg['balance']
           trg_balance = row_trg_src['balance']
