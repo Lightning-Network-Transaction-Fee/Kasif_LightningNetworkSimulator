@@ -73,7 +73,7 @@ class simulator():
 
   def update_depleted_graph(self,depleted_graph, modified_path, amount):
       
-      for (src,trg,channel_id) in path_by_channels :
+      for (src,trg,channel_id) in modified_path :
         index = self.base_network.index[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==src) & (self.base_network['trg']==trg)]
         inverse_index = self.base_network.index[(self.base_network["channel_id"] == channel_id) & (self.base_network['src']==trg) & (self.base_network['trg']==src)]
 
