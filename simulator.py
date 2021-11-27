@@ -181,7 +181,7 @@ class simulator():
   
   
   def get_total_cost(self,modified_path,amount) :
-      alpha_bar, beta_bar = get_total_fee(modified_path)
+      alpha_bar, beta_bar = self.get_total_fee(modified_path)
       return alpha_bar*amount + beta_bar
 
 
