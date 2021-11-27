@@ -198,13 +198,13 @@ class simulator():
 
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,trg,src,depleted_graph) 
           if result_bit == -1 :
-            print("inside result_bit == -1")
+            #print("inside result_bit == -1")
             return 0,0,-1
             
           if result_bit == 1 :
             modified_path = self.nxpath_to_modified_path(cheapest_rebalancing_path, depleted_graph)
             if modified_path == [(trg,src,channel_id)] :
-              print("inside if modified_path")
+              #print("inside if modified_path")
               return 0,0,-1
             modified_path.insert(0,(src,trg,channel_id))  #convert path to loop
             alpha_bar,beta_bar = self.get_total_fee(modified_path)
