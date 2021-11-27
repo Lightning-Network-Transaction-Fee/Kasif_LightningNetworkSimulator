@@ -260,20 +260,20 @@ class simulator():
   def get_gamma_coeffiecients(self,action,transactions,src,trg,channel_id,simulation_amount):
       k = self.get_k(src,trg,channel_id,transactions)
       tx = simulation_amount*k
-      bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg)
+      bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
       r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action[2],action[3],bitcoin_transaction_fee)
       return k,tx,r,clockwise_result_bit,counterclockwise_result_bit
 
 
 
   # onchain rebalancing
-  def onchain_rebalancing(self,onchain_rebalancing_flag,onchain_rebalancing_amount,src,trg):
+  def onchain_rebalancing(self,onchain_rebalancing_flag,onchain_rebalancing_amount,src,trg,channel_id):
     print("operating onchain rebalancing...")
     bitcoin_transaction_fee = 0
     if onchain_rebalancing_flag==1 : #CHECK : 1 or True
       bitcoin_transaction_fee = self.operate_rebalancing_on_blockchain(onchain_rebalancing_amount)
-      index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) ]
-      self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] + onchain_rebalancing_amount  #CHECK
+      index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
+      self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] + onchain_rebalancing_amount  
     print("onchain rebalancing ended successfully!")    
     return bitcoin_transaction_fee
 
