@@ -178,6 +178,12 @@ class simulator():
       beta_bar += self.base_network.at[index[0],'fee_base_msat']
     return alpha_bar,beta_bar
 
+  
+  
+  def get_total_cost(self,modified_path,amount) :
+      alpha_bar, beta_bar = get_total_fee(modified_path)
+      return alpha_bar*amount + beta_bar
+
 
   #off-chain rebalancing
 
