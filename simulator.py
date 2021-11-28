@@ -150,7 +150,7 @@ class simulator():
     for index, row in transactions.iterrows():
         path = row["path"]  
         for i in range(len(path)-1) :
-          if path[i]==src & path[i+1]==trg :
+          if (path[i]==src) & (path[i+1]==trg) :
               num += 1
     return num
 
