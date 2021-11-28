@@ -241,22 +241,27 @@ class simulator():
 
       
 
-  def get_r(self,src,trg,channel_id,gamma_1,gamma_2,bitcoin_transaction_fee = 5000):
+  def get_r(self,src,trg,channel_id,action,bitcoin_transaction_fee = 5000):
       r = np.zeros(6)
-      print("operating clockwise rebalancing...")
-      r[0],r[4],clockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-1, src=src, trg=trg, channel_id = channel_id, rebalancing_amount=gamma_1)
-      if clockwise_result_bit == 1 :
-        print("clockwise offchain rebalancing ended successfully!")
-      else :
-        print("clockwise offchain rebalancing failed !")
+      if(action[6]==1):
+        print("operating clockwise rebalancing...")
+        r[0],r[4],clockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-1, src=src, trg=trg, channel_id = channel_id, rebalancing_amount=action[2])
+        if clockwise_result_bit == 1 :
+          print("clockwise offchain rebalancing ended successfully!")
+        else :
+          print("clockwise offchain rebalancing failed !")
+      else : 
+        r[0],r[4],clockwise_result_bit = 0,0,-1
 
-
-      print("operating counter-clockwise rebalancing...")
-      r[1],r[5],counterclockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-2, src=src, trg=trg, channel_id = channel_id, rebalancing_amount=gamma_2)
-      if counterclockwise_result_bit == 1 :
-        print("counter clockwise offchain rebalancing ended successfully!")
+      if(action[7]==1):
+        print("operating counter-clockwise rebalancing...")
+        r[1],r[5],counterclockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-2, src=src, trg=trg, channel_id = channel_id, rebalancing_amount=action[3])
+        if counterclockwise_result_bit == 1 :
+          print("counter clockwise offchain rebalancing ended successfully!")
+        else :
+          print("counter clockwise offchain rebalancing failed !")
       else :
-        print("counter clockwise offchain rebalancing failed !")
+        r[1],r[5],counterclockwise_result_bit = 0,0,-1
 
 
       r[2] = bitcoin_transaction_fee
@@ -268,9 +273,8 @@ class simulator():
       k = self.get_k(src,trg,channel_id,transactions)
       tx = simulation_amount*k
       bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
-      r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action[2],action[3],bitcoin_transaction_fee)
+      r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action,bitcoin_transaction_fee)
       return k,tx,r,clockwise_result_bit,counterclockwise_result_bit
-
 
 
   # onchain rebalancing
