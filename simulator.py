@@ -145,12 +145,13 @@ class simulator():
   
 
 
-  def get_k(self,channel_id, transactions):
+  def get_k(self,src,trg,channel_id, transactions):
     num = 0
     for index, row in transactions.iterrows():
-        path_by_channels = row["path"]  
-        if(self.channel_exists_in_path(channel_id, path_by_channels)):
-            num += 1
+        path = row["path"]  
+        for i in range(len(path)-1) :
+          if path[i]==src & path[i+1]==trg :
+              num += 1
     return num
 
 
@@ -254,7 +255,7 @@ class simulator():
 
   
   def get_gamma_coeffiecients(self,action,transactions,src,trg,channel_id,simulation_amount):
-      k = self.get_k(channel_id,transactions)
+      k = self.get_k(channel_id,src,trg,transactions)
       tx = simulation_amount*k
       bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
       r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action[2],action[3],bitcoin_transaction_fee)
