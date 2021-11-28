@@ -360,7 +360,7 @@ class simulator():
             self.update_base_network(path_by_channels,amount)
             depleted_graph = self.update_depleted_graph(depleted_graph,path_by_channels,amount)
             transactions.at[index,"result_bit"] = 1
-            transactions.at[index,"path"] = path_by_channels
+            transactions.at[index,"path"] = path
 
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
