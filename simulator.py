@@ -273,9 +273,9 @@ class simulator():
       self.base_network.at[index[0],'balance'] += onchain_rebalancing_amount  
       self.base_network.at[index[0],'capacity'] += onchain_rebalancing_amount   
       self.base_network.at[inverse_index[0],'capacity'] += onchain_rebalancing_amount   
+      print("onchain rebalancing ended successfully!")    
       
 
-    print("onchain rebalancing ended successfully!")    
     return bitcoin_transaction_fee
 
 
