@@ -10,6 +10,9 @@ import copy
 
 
 
+
+
+
 class simulator():
   def __init__(self,
                base_network,                #dynamic not implimented
@@ -88,11 +91,15 @@ class simulator():
       src_balance = self.base_network.at[index[0],'balance']
       trg_balance = self.base_network.at[index[1],'balance']
 
-      if src_balance >= amount :
+      if src_balance > amount :
         depleted_graph[src][trg]['weight'] = self.calculate_weight(self.base_network.iloc[index[0]],amount)
-      if trg_balance >= amount :
+      elif src_balance <= amount :
+        depleted_graph[src][trg]['weight'] = math.inf
+      if trg_balance > amount :
         depleted_graph[trg][src]['weight'] = self.calculate_weight(self.base_network.iloc[index[1]],amount)
-
+      elif trg_balance <= amount :
+        depleted_graph[trg][src]['weight'] = math.inf
+      
     return depleted_graph
 
   
