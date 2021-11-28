@@ -101,13 +101,14 @@ class simulator():
 
   
 
-  def update_base_network(self,path_by_channels, amount):
-
-    for channel_id in path_by_channels:
-      index = self.base_network.index[self.base_network["channel_id"] == channel_id]
+  def update_base_network(self,path, amount):
+    for i in range(len(path)-1) :
+      src = path[i]
+      trg = path[i+1]
+      index = self.base_network.index[(self.base_network["src"] == src) & (self.base_network["trg"] == trg)]
+      inverse_index = self.base_network.index[(self.base_network["src"] == trg) & (self.base_network["trg"] == src)]      
       self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] - amount
-      self.base_network.at[index[1],'balance'] = self.base_network.at[index[1],'balance'] + amount
-
+      self.base_network.at[inverse_index[0],'balance'] = self.base_network.at[inverse_index[0],'balance'] + amount
 
 
 
@@ -201,9 +202,10 @@ class simulator():
             if path_by_channels == [channel_id] :
               return 0,0,-2
             path_by_channels.insert(0,channel_id)  #convert path to loop
+            cheapest_rebalancing_path.insert(0,src)
             alpha_bar,beta_bar = self.get_total_fee(path_by_channels)
             #total_cost = self.get_total_cost(path_by_channels, rebalancing_amount)  
-            self.update_base_network(path_by_channels, rebalancing_amount)
+            self.update_base_network(cheapest_rebalancing_path, rebalancing_amount)
 
 
       elif rebalancing_type == -2 : #counter-clockwise
@@ -218,9 +220,10 @@ class simulator():
             if path_by_channels == [channel_id] :
               return 0,0,-2
             path_by_channels.append(channel_id) #convert path to loop
+            cheapest_rebalancing_path.append(src)
             alpha_bar,beta_bar = self.get_total_fee(path_by_channels)
             #total_cost = self.get_total_cost(path_by_channels, rebalancing_amount)  
-            self.update_base_network(path_by_channels, rebalancing_amount)
+            self.update_base_network(cheapest_rebalancing_path, rebalancing_amount)
 
    
       
@@ -357,7 +360,7 @@ class simulator():
 
         if result_bit == 1 : #successful transaction
             path_by_channels = self.nxpath_to_path_by_channels(path)
-            self.update_base_network(path_by_channels,amount)
+            self.update_base_network(path,amount)
             depleted_graph = self.update_depleted_graph(depleted_graph,path_by_channels,amount)
             transactions.at[index,"result_bit"] = 1
             transactions.at[index,"path"] = path
