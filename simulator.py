@@ -299,10 +299,15 @@ class simulator():
       bitcoin_transaction_fee = self.operate_rebalancing_on_blockchain(onchain_rebalancing_amount)
       index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
       self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] + onchain_rebalancing_amount  
+      self.base_network.at[index[0],'capacity'] = self.base_network.at[index[0],'capacity'] + onchain_rebalancing_amount   
+      self.base_network.at[index[0]+1,'capacity'] = self.base_network.at[index[0]+1,'capacity'] + onchain_rebalancing_amount   
+      
     print("onchain rebalancing ended successfully!")    
     return bitcoin_transaction_fee
 
 
+  
+  
   def operate_rebalancing_on_blockchain(self,onchain_rebalancing_amount):
     bitcoin_transaction_fee = 5000 #CHECK
     return bitcoin_transaction_fee
