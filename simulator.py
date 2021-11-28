@@ -253,7 +253,7 @@ class simulator():
 
 
   
-    def get_gamma_coeffiecients(self,action,transactions,src,trg,channel_id,simulation_amount):
+  def get_gamma_coeffiecients(self,action,transactions,src,trg,channel_id,simulation_amount):
       k = self.get_k(channel_id,transactions)
       tx = simulation_amount*k
       bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
