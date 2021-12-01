@@ -10,9 +10,6 @@ import copy
 
 
 
-
-
-
 class simulator():
   def __init__(self,
                base_network,                #dynamic not implimented
@@ -61,13 +58,11 @@ class simulator():
 
 
   def generate_temp_network(self,amount) :    #temp_network is just valid at initialization, doesn't get updated after transactions
-
     temp_network = copy.deepcopy(self.base_network)  
+    temp_network = temp_network[temp_network['balance'] > amount]
     temp_network = temp_network.assign(weight=None)
     temp_network.loc[:,'weight'] = temp_network['fee_base_msat'] + temp_network['fee_rate_milli_msat']*amount
-    indexes = temp_network.index[temp_network['balance'] <= amount]
-    temp_network.loc[indexes,'weight'] = math.inf
-
+    
     return temp_network
 
 
@@ -81,25 +76,22 @@ class simulator():
 
 
 
-  def update_depleted_graph(self,depleted_graph, path_by_channels, amount):
+  def update_depleted_graph(self,depleted_graph, path, amount):
 
-    for channel_id in path_by_channels :
-      index = self.base_network.index[self.base_network["channel_id"] == channel_id]
-
-      src = self.base_network.at[index[0],'src']
-      trg = self.base_network.at[index[1],'src']
-      src_balance = self.base_network.at[index[0],'balance']
-      trg_balance = self.base_network.at[index[1],'balance']
-
-      if src_balance > amount :
-        depleted_graph[src][trg]['weight'] = self.calculate_weight(self.base_network.iloc[index[0]],amount)
-      elif src_balance <= amount :
-        depleted_graph[src][trg]['weight'] = math.inf
-      if trg_balance > amount :
-        depleted_graph[trg][src]['weight'] = self.calculate_weight(self.base_network.iloc[index[1]],amount)
-      elif trg_balance <= amount :
-        depleted_graph[trg][src]['weight'] = math.inf
+    for i in range(len(path)-1) :
       
+      src = path[i]
+      trg = path[i+1]
+      row_src_trg = self.base_network[(self.base_network['src']==src) & (self.base_network['trg']==trg)].iloc[0]
+      row_trg_src = self.base_network[(self.base_network['src']==trg) & (self.base_network['trg']==src)].iloc[0]
+      
+
+      if row_src_trg['balance'] <= amount :
+        depleted_graph.remove_edge(src,trg)
+      if row_trg_src['balance'] > amount :
+        depleted_graph.add_edge(trg, src, weight=self.calculate_weight(row_trg_src,amount))
+      
+
     return depleted_graph
 
   
@@ -119,18 +111,6 @@ class simulator():
 
 
 
-    
-  def nxpath_to_path_by_channels(self,path_by_nodes):
-    path_by_channels = []
-    if(len(path_by_nodes) == 0):
-        return []
-    for i in range(len(path_by_nodes)-1) :
-        src = path_by_nodes[i]
-        trg = path_by_nodes[i+1]
-        channel_id = self.get_channel_id(src,trg)
-        path_by_channels.append(channel_id)
-    return path_by_channels
-
 
 
 
@@ -146,11 +126,6 @@ class simulator():
     return self.base_network
 
 
-  
-  def channel_exists_in_path(self,channel_id, path_by_channels):
-      return channel_id in path_by_channels
-  
-  
 
 
   def get_k(self,src,trg,channel_id, transactions):
@@ -166,21 +141,19 @@ class simulator():
   
 
 
-  def get_total_fee(self,path_by_channels) :
+  def get_total_fee(self,path) :
     alpha_bar = 0
     beta_bar = 0
-    for channel_id in path_by_channels:
-      index = self.base_network.index[(self.base_network['channel_id']==channel_id)]
-      alpha_bar += self.base_network.at[index[0],'fee_rate_milli_msat']
-      beta_bar += self.base_network.at[index[0],'fee_base_msat']
+    for i in range(len(path)-1):
+      src = path[i]
+      trg = path[i+1]
+      row_src_trg = self.base_network[(self.base_network['src']==src) & (self.base_network['trg']==trg)].iloc[0]
+      alpha_bar += row_src_trg['fee_rate_milli_msat']
+      beta_bar += row_src_trg['fee_base_msat']
     return alpha_bar,beta_bar
 
 
   
-  def get_total_cost(self,path_by_channels,amount) :
-      alpha_bar, beta_bar = self.get_total_fee(path_by_channels)
-      return alpha_bar*amount + beta_bar
-
 
   #off-chain rebalancing
 
@@ -197,7 +170,7 @@ class simulator():
       reult_bit = -1
 
       if rebalancing_type == -1 : #clockwise
-          if depleted_graph.get_edge_data(src, trg)['weight'] == math.inf :
+          if (not src in depleted_graph.nodes()) or (not trg in depleted_graph.nodes()):
             return 0,0,-1
 
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,trg,src,depleted_graph) 
@@ -205,31 +178,25 @@ class simulator():
             return 0,0,-2
             
           if result_bit == 1 :
-            path_by_channels = self.nxpath_to_path_by_channels(cheapest_rebalancing_path)
-            if path_by_channels == [channel_id] :
+            if cheapest_rebalancing_path == [trg,src] :
               return 0,0,-2
-            path_by_channels.insert(0,channel_id)  #convert path to loop
             cheapest_rebalancing_path.insert(0,src)
-            alpha_bar,beta_bar = self.get_total_fee(path_by_channels)
-            #total_cost = self.get_total_cost(path_by_channels, rebalancing_amount)  
+            alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
             self.update_base_network(cheapest_rebalancing_path, rebalancing_amount)
 
 
       elif rebalancing_type == -2 : #counter-clockwise
-          if depleted_graph.get_edge_data(trg, src)['weight'] == math.inf :
+          if (not src in depleted_graph.nodes()) or (not trg in depleted_graph.nodes()):
             return 0,0,-1
 
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(-2,rebalancing_amount,src,trg,depleted_graph) 
           if result_bit == -1 :
             return 0,0,-2
           if result_bit == 1 :
-            path_by_channels = self.nxpath_to_path_by_channels(cheapest_rebalancing_path)
-            if path_by_channels == [channel_id] :
+            if cheapest_rebalancing_path == [src, trg] :
               return 0,0,-2
-            path_by_channels.append(channel_id) #convert path to loop
             cheapest_rebalancing_path.append(src)
-            alpha_bar,beta_bar = self.get_total_fee(path_by_channels)
-            #total_cost = self.get_total_cost(path_by_channels, rebalancing_amount)  
+            alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
             self.update_base_network(cheapest_rebalancing_path, rebalancing_amount)
 
    
@@ -275,6 +242,7 @@ class simulator():
       bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
       r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action,bitcoin_transaction_fee)
       return k,tx,r,clockwise_result_bit,counterclockwise_result_bit
+
 
 
   # onchain rebalancing
@@ -367,19 +335,30 @@ class simulator():
       transactions['path'] = transactions['path'].astype('object')
    
       for index, transaction in transactions.iterrows(): 
-        path,result_bit = self.run_single_transaction(transaction["transaction_id"],amount,transaction["src"],transaction["trg"],depleted_graph) 
+        src,trg = transaction["src"],transaction["trg"]
+        if (not src in depleted_graph.nodes()) or (not trg in depleted_graph.nodes()):
+          path,result_bit = [] , -1
+        else : 
+          #t1 = time.time()
+          path,result_bit = self.run_single_transaction(transaction["transaction_id"],amount,transaction["src"],transaction["trg"],depleted_graph) 
+          #t2 = time.time()-t1
+          #print("run_single_transaction : ",t2)
 
         if result_bit == 1 : #successful transaction
-            path_by_channels = self.nxpath_to_path_by_channels(path)
+            #t1 = time.time()
             self.update_base_network(path,amount)
-            depleted_graph = self.update_depleted_graph(depleted_graph,path_by_channels,amount)
+            #t2 = time.time()
+            #print("update base network : ", t2-t1)
+            depleted_graph = self.update_depleted_graph(depleted_graph,path,amount)
+            #t3 = time.time()
+            #print("update depleted graph : ", t3-t2)
             transactions.at[index,"result_bit"] = 1
             transactions.at[index,"path"] = path
 
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
-
+        #print("----------------------------------------------")
       print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
 
