@@ -51,14 +51,15 @@ class simulator():
 
   def generate_depleted_graph(self, amount):
     depleted_graph = nx.DiGraph()
-    for key in capacity_map :
+    for key in self.capacity_map :
       val = self.capacity_map[key]
       if val[0] > amount :
           depleted_graph.add_edge(key[0],key[1],weight = val[1]*amount + val[2])
     
     return depleted_graph
 
-
+  
+  
 
 
   def update_depleted_graph(self,depleted_graph, path, amount):
