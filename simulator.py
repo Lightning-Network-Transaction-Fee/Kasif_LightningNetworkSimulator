@@ -9,9 +9,9 @@ import copy
 
 
 
+
 class simulator():
   def __init__(self,
-               base_network,
                capacity_map,                #dynamic not implimented
                merchants,
                count,
@@ -19,7 +19,6 @@ class simulator():
                epsilon,
                node_variables,
                active_providers):
-    self.base_network = base_network
     self.count = count
     self.amout = amount
 
@@ -50,20 +49,13 @@ class simulator():
 
 
 
-  def generate_temp_network(self,amount) :    #temp_network is just valid at initialization, doesn't get updated after transactions
-    temp_network = copy.deepcopy(self.base_network)  
-    temp_network = temp_network[temp_network['balance'] > amount]
-    temp_network = temp_network.assign(weight=None)
-    temp_network.loc[:,'weight'] = temp_network['fee_base_msat'] + temp_network['fee_rate_milli_msat']*amount
+  def generate_depleted_graph(self, amount):
+    depleted_graph = nx.DiGraph()
+    for key in capacity_map :
+      val = self.capacity_map[key]
+      if val[0] > amount :
+          depleted_graph.add_edge(key[0],key[1],weight = val[1]*amount + val[2])
     
-    return temp_network
-
-
-
-
-
-  def generate_depleted_graph(self,temp_network, amount):
-    depleted_graph = nx.from_pandas_edgelist(temp_network, source="src", target="trg", edge_attr=['weight'], create_using=nx.DiGraph())
     return depleted_graph
 
 
@@ -147,8 +139,7 @@ class simulator():
 
 
   def get_rebalancing_coefficients(self,rebalancing_type, src, trg, channel_id, rebalancing_amount):
-      temp_network = self.generate_temp_network(rebalancing_amount)
-      depleted_graph = self.generate_depleted_graph(temp_network,rebalancing_amount)   # weight(edges : balance < amount) = inf
+      depleted_graph = self.generate_depleted_graph(rebalancing_amount)   # weight(edges : balance < amount) = inf
       
       cheapest_rebalancing_path = []
       
@@ -272,14 +263,9 @@ class simulator():
   def set_node_fee(self,src,trg,channel_id,action):
       alpha = action[0]
       beta = action[1]
-      #capacity_map
       src_trg = self.capacity_map[(src,trg)]
       src_trg[1] = alpha
       src_trg[2] = beta
-      #base_network
-      index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
-      self.base_network.at[index[0],'fee_rate_milli_msat'] = alpha
-      self.base_network.at[index[0],'fee_base_msat'] = beta
       
 
       
@@ -310,8 +296,7 @@ class simulator():
       
 
       #Graph Pre-Processing
-      temp_network = self.generate_temp_network(amount)
-      depleted_graph = self.generate_depleted_graph(temp_network,amount)   # weight(edges : balance < amount) = inf
+      depleted_graph = self.generate_depleted_graph(amount)   # weight(edges : balance < amount) = inf
 
 
 
