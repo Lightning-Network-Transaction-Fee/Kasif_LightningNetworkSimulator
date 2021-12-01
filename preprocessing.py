@@ -128,3 +128,15 @@ def set_node_balance(G,src,trg,channel_id,capacity,initial_balance):
     G.at[index[0],'balance'] = initial_balance
     G.at[index[1],'balance'] = capacity - initial_balance
     return G
+
+
+
+def create_capacity_map(G):
+    keys = list(zip(G["src"], G["trg"]))
+    vals = [list(item) for item in zip([None]*len(G), G["fee_rate_milli_msat"],G['fee_base_msat'], G["capacity"])]
+    capacity_map = dict(zip(keys,vals))
+    for index,row in G.iterrows():
+      src = row['src']
+      trg = row['trg']
+      capacity_map[(src,trg)][0] = row['balance']
+    return capacity_map
