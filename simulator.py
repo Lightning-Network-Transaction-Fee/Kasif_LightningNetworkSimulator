@@ -9,10 +9,10 @@ import copy
 
 
 
-
 class simulator():
   def __init__(self,
-               base_network,                #dynamic not implimented
+               base_network,
+               capacity_map,                #dynamic not implimented
                merchants,
                count,
                amount,
@@ -27,30 +27,23 @@ class simulator():
     self.epsilon = epsilon    #ratio of marchant
     self.node_variables = node_variables
     self.active_providers = active_providers
+    self.capacity_map = capacity_map
 
   """  
   update of base graph balances: onChain,offChain, gamma,tx
   also updating the topology dynamc
   """    
 
-  def dynamic_update_base_network(self, new_network): #dynamic
+  def dynamic_update_capacity_map(self, new_network): #dynamic
     pass
 
   
 
 
-  def get_channel_id(self,src,trg):   #returns the first channel id between these two nodes
-    index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg)]
-    channel_id = self.base_network.at[index[0],'channel_id']
-    return channel_id
-
-
 
 
   def calculate_weight(self,edge,amount): #assuming edge is a row of dataframe
-    if edge["fee_base_msat"] == math.inf:
-      return math.inf
-    return edge["fee_base_msat"] + edge["fee_rate_milli_msat"]*amount 
+    return edge[2] + edge[1]*amount 
     
 
 
@@ -78,20 +71,19 @@ class simulator():
 
   def update_depleted_graph(self,depleted_graph, path, amount):
 
-    for i in range(len(path)-1) :
-      
+    for i in range(len(path)-1) :  
       src = path[i]
       trg = path[i+1]
-      row_src_trg = self.base_network[(self.base_network['src']==src) & (self.base_network['trg']==trg)].iloc[0]
-      row_trg_src = self.base_network[(self.base_network['src']==trg) & (self.base_network['trg']==src)].iloc[0]
+      trg_src = self.capacity_map[(trg,src)]
+      trg_src_capacity = trg_src[3]
+      trg_src_balance = trg_src[0]
+      src_trg_balance = trg_src_capacity - trg_src_balance
       
-
-      if row_src_trg['balance'] <= amount :
+      if src_trg_balance <= amount :
         depleted_graph.remove_edge(src,trg)
-      if row_trg_src['balance'] > amount :
-        depleted_graph.add_edge(trg, src, weight=self.calculate_weight(row_trg_src,amount))
+      if trg_src_balance > amount :
+        depleted_graph.add_edge(trg, src, weight=self.calculate_weight(trg_src,amount))
       
-
     return depleted_graph
 
   
@@ -100,15 +92,12 @@ class simulator():
 
   
 
-  def update_base_network(self,path, amount):
+  def update_capacity_map(self,path, amount):
     for i in range(len(path)-1) :
       src = path[i]
       trg = path[i+1]
-      index = self.base_network.index[(self.base_network["src"] == src) & (self.base_network["trg"] == trg)]
-      inverse_index = self.base_network.index[(self.base_network["src"] == trg) & (self.base_network["trg"] == src)]      
-      self.base_network.at[index[0],'balance'] = self.base_network.at[index[0],'balance'] - amount
-      self.base_network.at[inverse_index[0],'balance'] = self.base_network.at[inverse_index[0],'balance'] + amount
-
+      self.capacity_map[(src,trg)][0] = self.capacity_map[(src,trg)][0] - amount
+      self.capacity_map[(trg,src)][0] = self.capacity_map[(trg,src)][0] + amount
 
 
 
@@ -116,14 +105,13 @@ class simulator():
 
 
   def get_balance(self,src,trg,channel_id):
-      index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
-      return self.base_network.at[index[0],'balance']
+      return self.capacity_map[(src,trg)][0]
   
 
 
 
-  def get_base_network(self):
-    return self.base_network
+  def get_capacity_map(self):
+    return self.capacity_map
 
 
 
@@ -147,9 +135,9 @@ class simulator():
     for i in range(len(path)-1):
       src = path[i]
       trg = path[i+1]
-      row_src_trg = self.base_network[(self.base_network['src']==src) & (self.base_network['trg']==trg)].iloc[0]
-      alpha_bar += row_src_trg['fee_rate_milli_msat']
-      beta_bar += row_src_trg['fee_base_msat']
+      src_trg = self.capacity_map[(src,trg)]
+      alpha_bar += src_trg[1]
+      beta_bar += src_trg[2]
     return alpha_bar,beta_bar
 
 
@@ -182,7 +170,7 @@ class simulator():
               return 0,0,-2
             cheapest_rebalancing_path.insert(0,src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
-            self.update_base_network(cheapest_rebalancing_path, rebalancing_amount)
+            self.update_capacity_map(cheapest_rebalancing_path, rebalancing_amount)
 
 
       elif rebalancing_type == -2 : #counter-clockwise
@@ -197,7 +185,7 @@ class simulator():
               return 0,0,-2
             cheapest_rebalancing_path.append(src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
-            self.update_base_network(cheapest_rebalancing_path, rebalancing_amount)
+            self.update_capacity_map(cheapest_rebalancing_path, rebalancing_amount)
 
    
       
@@ -251,13 +239,12 @@ class simulator():
     if onchain_rebalancing_flag==1 : 
       print("operating onchain rebalancing...")
       bitcoin_transaction_fee = self.operate_rebalancing_on_blockchain(onchain_rebalancing_amount)
-      index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
-      inverse_index = self.base_network.index[(self.base_network['src']==trg) & (self.base_network['trg']==src) & (self.base_network['channel_id']==channel_id)] 
-      self.base_network.at[index[0],'balance'] += onchain_rebalancing_amount  
-      self.base_network.at[index[0],'capacity'] += onchain_rebalancing_amount   
-      self.base_network.at[inverse_index[0],'capacity'] += onchain_rebalancing_amount   
+      src_trg = self.capacity_map[(src,trg)]
+      trg_src = self.capacity_map[(trg,src)]
+      src_trg[0] += onchain_rebalancing_amount  
+      src_trg[3] += onchain_rebalancing_amount   
+      trg_src[3] += onchain_rebalancing_amount   
       print("onchain rebalancing ended successfully!")    
-      
 
     return bitcoin_transaction_fee
 
@@ -276,10 +263,7 @@ class simulator():
     for i in range(len(nxpath)-1):
       u,v = nxpath[i],nxpath[i+1]
       weight = depleted_graph.get_edge_data(u, v)['weight']
-      if weight == math.inf:
-        return math.inf
-      else :
-        val += weight
+      val += weight
     return val
     
 
@@ -288,9 +272,16 @@ class simulator():
   def set_node_fee(self,src,trg,channel_id,action):
       alpha = action[0]
       beta = action[1]
+      #capacity_map
+      src_trg = self.capacity_map[(src,trg)]
+      src_trg[1] = alpha
+      src_trg[2] = beta
+      #base_network
       index = self.base_network.index[(self.base_network['src']==src) & (self.base_network['trg']==trg) & (self.base_network['channel_id']==channel_id)]
       self.base_network.at[index[0],'fee_rate_milli_msat'] = alpha
       self.base_network.at[index[0],'fee_base_msat'] = beta
+      
+
       
 
 
@@ -307,11 +298,6 @@ class simulator():
     except nx.NetworkXNoPath:
       return None,-1
     val = self.get_path_value(path,depleted_graph)
-    if val == math.inf :   
-        result_bit = -1
-        #print("Transaction ",transaction_id ," Failed")
-        return None,result_bit
-    
     result_bit = 1
     return path,result_bit  
 
@@ -346,7 +332,7 @@ class simulator():
 
         if result_bit == 1 : #successful transaction
             #t1 = time.time()
-            self.update_base_network(path,amount)
+            self.update_capacity_map(path,amount)
             #t2 = time.time()
             #print("update base network : ", t2-t1)
             depleted_graph = self.update_depleted_graph(depleted_graph,path,amount)
