@@ -172,7 +172,8 @@ class simulator():
       
 
       #Graph Pre-Processing
-      self.graph[self.src][self.trg]['weight'] = action[0]*amount + action[1]
+      if self.graph.has_edge(self.src, self.trg):
+        self.graph[self.src][self.trg]['weight'] = action[0]*amount + action[1]
 
 
 
