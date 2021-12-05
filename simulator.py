@@ -119,7 +119,7 @@ class simulator():
 
 
   def operate_rebalancing_on_blockchain(self,onchain_rebalancing_amount):
-    bitcoin_transaction_fee = 5000 #CHECK
+    bitcoin_transaction_fee = 5000000 #CHECK
     return bitcoin_transaction_fee
   
 
