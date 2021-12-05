@@ -64,7 +64,7 @@ class simulator():
 
 
 
-  def update_graph(self, src, trg):
+  def update_graph(self, src, trg,amount):
 
         trg_src = self.channel_data[(trg,src)]
         trg_src_capacity = trg_src[3]
