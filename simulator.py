@@ -94,7 +94,7 @@ class simulator():
         trg = path[i+1]
         if (src == self.src and trg == self.trg) or  (src == self.trg and trg == self.src) :
           self.update_channel_data(src,trg,amount)
-          self.update_graph(src, trg)
+          self.update_graph(src, trg, amount)
       
           
             
