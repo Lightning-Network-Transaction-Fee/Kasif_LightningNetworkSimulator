@@ -199,3 +199,18 @@ def create_sub_network(directed_edges,providers,src,trg,radius):
 
 
     return capacity_map, sub_nodes, sub_providers, sub_edges
+
+
+
+def init_node_params(edges, providers, verbose=True):
+    """Initialize source and target distribution of each node in order to draw transaction at random later."""
+    G = nx.from_pandas_edgelist(edges, source="src", target="trg", edge_attr=["capacity"], create_using=nx.DiGraph())
+    active_providers = list(set(providers).intersection(set(G.nodes())))
+    active_ratio = len(active_providers) / len(providers)
+    if verbose:
+        print("Total number of possible providers: %i" % len(providers))
+        print("Ratio of active providers: %.2f" % active_ratio)
+    degrees = pd.DataFrame(list(G.degree()), columns=["pub_key","degree"])
+    total_capacity = pd.DataFrame(list(nx.degree(G, weight="capacity")), columns=["pub_key","total_capacity"])
+    node_variables = degrees.merge(total_capacity, on="pub_key")
+    return node_variables, active_providers, active_ratio
