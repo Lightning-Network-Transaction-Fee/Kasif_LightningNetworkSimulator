@@ -80,7 +80,7 @@ class simulator():
   
 
 
-  def update_channel_data(self, src, trg):
+  def update_channel_data(self, src, trg, amount):
       self.channel_data[(src,trg)][0] = self.channel_data[(src,trg)][0] - amount
       self.channel_data[(trg,src)][0] = self.channel_data[(trg,src)][0] + amount
 
@@ -93,14 +93,8 @@ class simulator():
         src = path[i]
         trg = path[i+1]
         if (src == self.src and trg == self.trg) or  (src == self.trg and trg == self.src) :
-          t1 = time.time()
-          self.update_channel_data(src,trg)
-          t2 = time.time()
+          self.update_channel_data(src,trg,amount)
           self.update_graph(src, trg)
-          t3 = time.time()
-          print("update_channel_data",t2-t1)
-          print("update_graph",t3-t2)
-      print("update_network_data",time.time()-t)
       
           
             
@@ -162,14 +156,7 @@ class simulator():
     
     result_bit = 0
     try:
-      t1 = time.time()
       path = nx.shortest_path(graph, source=src, target=trg, weight="weight", method='dijkstra')
-      t2 = time.time()
-      nx.shortest_path(graph, target=trg, weight="weight", method='dijkstra')
-      t3 = time.time()
-      print("single shortest path",t2-t1)
-      print("multi shortest path",t3-t2)
-      
     except nx.NetworkXNoPath:
       return None,-1
     val = self.get_path_value(path,graph)
@@ -199,10 +186,8 @@ class simulator():
         if (not src in self.graph.nodes()) or (not trg in self.graph.nodes()):
           path,result_bit = [] , -1
         else : 
-          t = time.time()
           path,result_bit = self.run_single_transaction(transaction["transaction_id"],amount,transaction["src"],transaction["trg"],self.graph) 
-          print("run_single_transaction : ",time.time()-t)
-
+          
         if result_bit == 1 : #successful transaction
             self.update_network_data(path,amount)
             transactions.at[index,"result_bit"] = 1
@@ -211,7 +196,7 @@ class simulator():
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
-        print("---------------------------------------")
+        
       print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
 
