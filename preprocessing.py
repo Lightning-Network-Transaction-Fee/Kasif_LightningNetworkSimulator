@@ -184,21 +184,6 @@ def create_sub_network(directed_edges,providers,src,trg,channel_id,capacity,init
   return capacity_map, sub_nodes, sub_providers, sub_edges
 
 
-def create_sub_network(directed_edges,providers,src,trg,channel_id,radius):
-  """creating capacity map, edges and providers for the local subgraph."""
-  edges = initiate_balances(directed_edges)
-  edges = set_node_balance(edges,src,trg,channel_id,capacity,initial_balance)
-  G = nx.from_pandas_edgelist(edges,source="src",target="trg",
-                              edge_attr=['channel_id','capacity','fee_base_msat','fee_rate_milli_msat','balance'],create_using=nx.DiGraph())
-  sub_nodes= get_neighbors(G,src,trg,radius)
-  sub_providers = list(set(sub_nodes) & set(providers))
-  sub_graph = G.subgraph(sub_nodes)
-  sub_edges = nx.to_pandas_edgelist(sub_graph)
-  sub_edges = sub_edges.rename(columns={'source': 'src', 'target': 'trg'})
-  capacity_map = create_capacity_map(sub_edges)
-
-  return capacity_map, sub_nodes, sub_providers, sub_edges
-
 
 
 def init_node_params(edges, providers, verbose=True):
