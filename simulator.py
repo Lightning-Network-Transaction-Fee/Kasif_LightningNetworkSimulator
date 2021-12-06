@@ -202,7 +202,6 @@ class simulator():
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
-        print("---------------------------------------")
       print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
 
@@ -291,7 +290,7 @@ class simulator():
           if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
             return 0,0,-1
 
-          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,src,trg,rebalancing_graph) 
+          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,trg,src,rebalancing_graph) 
           if result_bit == -1 :
             return 0,0,-2
             
