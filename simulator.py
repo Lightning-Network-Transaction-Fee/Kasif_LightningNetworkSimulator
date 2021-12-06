@@ -12,6 +12,7 @@ import time
 
 
 
+#invironment has an object of simulator
 class simulator():
   def __init__(self,
                src,trg,channel_id,
@@ -95,7 +96,7 @@ class simulator():
         if (src == self.src and trg == self.trg) or  (src == self.trg and trg == self.src) :
           self.update_channel_data(src,trg,amount)
           self.update_graph(src, trg, amount)
-      
+          
           
             
 
@@ -142,6 +143,10 @@ class simulator():
       src_trg = self.capacity_map[(src,trg)]
       src_trg[1] = alpha
       src_trg[2] = beta
+      src_trg2 = self.channel_data[(src,trg)]
+      src_trg2[1] = alpha
+      src_trg2[2] = beta
+      
       
 
       
@@ -156,7 +161,14 @@ class simulator():
     
     result_bit = 0
     try:
+      t1 = time.time()
       path = nx.shortest_path(graph, source=src, target=trg, weight="weight", method='dijkstra')
+      t2 = time.time()
+      nx.shortest_path(graph, target=trg, weight="weight", method='dijkstra')
+      t3 = time.time()
+      print("single shortest path",t2-t1)
+      print("multi shortest path",t3-t2)
+      
     except nx.NetworkXNoPath:
       return None,-1
     val = self.get_path_value(path,graph)
@@ -187,8 +199,10 @@ class simulator():
         if (not src in self.graph.nodes()) or (not trg in self.graph.nodes()):
           path,result_bit = [] , -1
         else : 
+          t = time.time()
           path,result_bit = self.run_single_transaction(transaction["transaction_id"],amount,transaction["src"],transaction["trg"],self.graph) 
-          
+          print("run_single_transaction : ",time.time()-t)
+
         if result_bit == 1 : #successful transaction
             self.update_network_data(path,amount)
             transactions.at[index,"result_bit"] = 1
@@ -197,7 +211,7 @@ class simulator():
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
-        
+        print("---------------------------------------")
       print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
 
@@ -240,6 +254,7 @@ class simulator():
   """
 
   def get_balance(self,src,trg,channel_id):
+      self.sync_capacity_map()
       return self.capacity_map[(src,trg)][0]
 
 
@@ -282,10 +297,10 @@ class simulator():
       reult_bit = -1
 
       if rebalancing_type == -1 : #clockwise
-          if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()):
+          if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
             return 0,0,-1
 
-          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,trg,src,rebalancing_graph) 
+          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,src,trg,rebalancing_graph) 
           if result_bit == -1 :
             return 0,0,-2
             
@@ -298,7 +313,7 @@ class simulator():
 
 
       elif rebalancing_type == -2 : #counter-clockwise
-          if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()):
+          if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
             return 0,0,-1
 
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(-2,rebalancing_amount,src,trg,rebalancing_graph) 
@@ -354,4 +369,5 @@ class simulator():
       bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
       r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action,bitcoin_transaction_fee)
       return k,tx,r,clockwise_result_bit,counterclockwise_result_bit
+
 
