@@ -89,7 +89,6 @@ class simulator():
 
 
   def update_network_data(self, path, amount):
-      t = time.time()
       for i in range(len(path)-1) :
         src = path[i]
         trg = path[i+1]
@@ -161,13 +160,7 @@ class simulator():
     
     result_bit = 0
     try:
-      t1 = time.time()
       path = nx.shortest_path(graph, source=src, target=trg, weight="weight", method='dijkstra')
-      t2 = time.time()
-      nx.shortest_path(graph, target=trg, weight="weight", method='dijkstra')
-      t3 = time.time()
-      print("single shortest path",t2-t1)
-      print("multi shortest path",t3-t2)
       
     except nx.NetworkXNoPath:
       return None,-1
@@ -199,10 +192,8 @@ class simulator():
         if (not src in self.graph.nodes()) or (not trg in self.graph.nodes()):
           path,result_bit = [] , -1
         else : 
-          t = time.time()
           path,result_bit = self.run_single_transaction(transaction["transaction_id"],amount,transaction["src"],transaction["trg"],self.graph) 
-          print("run_single_transaction : ",time.time()-t)
-
+          
         if result_bit == 1 : #successful transaction
             self.update_network_data(path,amount)
             transactions.at[index,"result_bit"] = 1
@@ -369,5 +360,4 @@ class simulator():
       bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
       r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action,bitcoin_transaction_fee)
       return k,tx,r,clockwise_result_bit,counterclockwise_result_bit
-
 
