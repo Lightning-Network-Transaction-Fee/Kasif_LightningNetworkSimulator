@@ -65,7 +65,7 @@ class simulator():
 
 
 
-  def update_graph(self, src, trg,amount):
+  def update_graph(self, src, trg, amount):
 
         trg_src = self.channel_data[(trg,src)]
         trg_src_capacity = trg_src[3]
@@ -75,7 +75,7 @@ class simulator():
         if src_trg_balance <= amount :
           self.graph.remove_edge(src,trg)
         if trg_src_balance > amount :
-          self.graph.add_edge(trg, src, weight=self.calculate_weight(trg_src,amount))
+          self.graph.add_edge(trg, src, weight = self.calculate_weight(trg_src, amount))
         
     
   
@@ -106,11 +106,9 @@ class simulator():
     if onchain_rebalancing_flag==1 : 
       print("operating onchain rebalancing...")
       bitcoin_transaction_fee = self.operate_rebalancing_on_blockchain(onchain_rebalancing_amount)
-      src_trg = self.capacity_map[(src,trg)]
-      trg_src = self.capacity_map[(trg,src)]
-      src_trg[0] += onchain_rebalancing_amount  
-      src_trg[3] += onchain_rebalancing_amount   
-      trg_src[3] += onchain_rebalancing_amount   
+      self.channel_data[(src,trg)][0] += onchain_rebalancing_amount  
+      self.channel_data[(src,trg)][3] += onchain_rebalancing_amount   
+      self.channel_data[(trg,src)][3] += onchain_rebalancing_amount   
       print("onchain rebalancing ended successfully!")    
 
     return bitcoin_transaction_fee
