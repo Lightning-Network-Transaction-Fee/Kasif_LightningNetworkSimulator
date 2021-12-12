@@ -193,7 +193,7 @@ class simulator():
           path,result_bit = self.run_single_transaction(transaction["transaction_id"],amount,transaction["src"],transaction["trg"],self.graph) 
           
         if result_bit == 1 : #successful transaction
-            self.update_network_data(path,amount)
+            #self.update_network_data(path,amount)
             transactions.at[index,"result_bit"] = 1
             transactions.at[index,"path"] = path
 
