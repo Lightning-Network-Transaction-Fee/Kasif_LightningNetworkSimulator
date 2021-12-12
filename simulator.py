@@ -37,6 +37,8 @@ class simulator():
     self.channel_data = channel_data
     self.capacity_map = capacity_map
     self.graph = self.generate_graph(amount)
+    
+    self.transactions = self.generate_transactions(amount, count)
  
 
  
@@ -181,7 +183,8 @@ class simulator():
 
 
       #Run Transactions
-      transactions = self.generate_transactions(amount, count)
+      #transactions = self.generate_transactions(amount, count)
+      transactions = self.transactions
       transactions = transactions.assign(path=None)
       transactions['path'] = transactions['path'].astype('object')
    
