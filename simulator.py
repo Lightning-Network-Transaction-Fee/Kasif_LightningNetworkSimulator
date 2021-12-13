@@ -173,7 +173,7 @@ class simulator():
 
  
   def run_simulation(self, count, amount, action):
-      print("simulating random transactions...")
+     # print("simulating random transactions...")
       
 
       #Graph Pre-Processing
@@ -203,7 +203,7 @@ class simulator():
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
-      print("random transactions ended succussfully!")
+   #   print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
 
 
