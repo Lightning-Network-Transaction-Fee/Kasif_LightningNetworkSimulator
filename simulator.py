@@ -10,7 +10,6 @@ import os
 import time
 
 
-
 #invironment has an object of simulator
 class simulator():
   def __init__(self,
@@ -232,6 +231,12 @@ class simulator():
   def get_balance(self,src,trg,channel_id):
       self.sync_capacity_map()
       return self.capacity_map[(src,trg)][0]
+
+
+  def get_capacity(self,src,trg,channel_id):
+      self.sync_capacity_map()
+      return self.capacity_map[(src,trg)][3]
+
 
 
   def get_capacity_map(self):
