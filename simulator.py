@@ -11,7 +11,6 @@ import time
 
 
 
-
 #invironment has an object of simulator
 class simulator():
   def __init__(self,
@@ -37,8 +36,6 @@ class simulator():
     self.channel_data = channel_data
     self.capacity_map = capacity_map
     self.graph = self.generate_graph(amount)
-    
-    self.transactions = self.generate_transactions(amount, count)
  
 
  
@@ -103,25 +100,14 @@ class simulator():
 
         
 
-  def onchain_rebalancing(self,onchain_rebalancing_flag,onchain_rebalancing_amount,src,trg,channel_id):
-    bitcoin_transaction_fee = 0
-    if onchain_rebalancing_flag==1 : 
-      print("operating onchain rebalancing...")
-      bitcoin_transaction_fee = self.operate_rebalancing_on_blockchain(onchain_rebalancing_amount)
-      self.channel_data[(src,trg)][0] += onchain_rebalancing_amount  
-      self.channel_data[(src,trg)][3] += onchain_rebalancing_amount   
-      self.channel_data[(trg,src)][3] += onchain_rebalancing_amount   
-      print("onchain rebalancing ended successfully!")    
-
-    return bitcoin_transaction_fee
+  def onchain_rebalancing(self,onchain_rebalancing_amount,src,trg,channel_id):
+    print("operating onchain rebalancing...")
+    self.channel_data[(src,trg)][0] += onchain_rebalancing_amount  
+    self.channel_data[(src,trg)][3] += onchain_rebalancing_amount   
+    self.channel_data[(trg,src)][3] += onchain_rebalancing_amount   
+    print("onchain rebalancing ended successfully!")    
 
 
-
-
-  def operate_rebalancing_on_blockchain(self,onchain_rebalancing_amount):
-    bitcoin_transaction_fee = 5000000 #CHECK
-    return bitcoin_transaction_fee
-  
 
 
 
@@ -173,7 +159,7 @@ class simulator():
 
  
   def run_simulation(self, count, amount, action):
-     # print("simulating random transactions...")
+      print("simulating random transactions...")
       
 
       #Graph Pre-Processing
@@ -183,8 +169,7 @@ class simulator():
 
 
       #Run Transactions
-      #transactions = self.generate_transactions(amount, count)
-      transactions = self.transactions
+      transactions = self.generate_transactions(amount, count)
       transactions = transactions.assign(path=None)
       transactions['path'] = transactions['path'].astype('object')
    
@@ -196,14 +181,14 @@ class simulator():
           path,result_bit = self.run_single_transaction(transaction["transaction_id"],amount,transaction["src"],transaction["trg"],self.graph) 
           
         if result_bit == 1 : #successful transaction
-            #self.update_network_data(path,amount)
+            self.update_network_data(path,amount)
             transactions.at[index,"result_bit"] = 1
             transactions.at[index,"path"] = path
 
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
-   #   print("random transactions ended succussfully!")
+      print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
 
 
@@ -277,7 +262,7 @@ class simulator():
 
 
 
-  def get_rebalancing_coefficients(self,rebalancing_type, src, trg, channel_id, rebalancing_amount):
+  def find_rebalancing_cycle(self,rebalancing_type, src, trg, channel_id, rebalancing_amount):
       rebalancing_graph = self.generate_graph(rebalancing_amount)   # weight(edges : balance < amount) = inf
       
       cheapest_rebalancing_path = []
@@ -300,8 +285,7 @@ class simulator():
               return 0,0,-2
             cheapest_rebalancing_path.insert(0,src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
-            self.update_network_data(cheapest_rebalancing_path, rebalancing_amount)
-
+            
 
       elif rebalancing_type == -2 : #counter-clockwise
           if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
@@ -315,49 +299,47 @@ class simulator():
               return 0,0,-2
             cheapest_rebalancing_path.append(src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
-            self.update_network_data(cheapest_rebalancing_path, rebalancing_amount)
-
+            
    
       
-      return alpha_bar,beta_bar,result_bit
+      return result_bit,cheapest_rebalancing_path,alpha_bar,beta_bar
       
 
 
 
       
 
-  def get_r(self,src,trg,channel_id,action,bitcoin_transaction_fee = 5000):
-      r = np.zeros(6)
-      if(action[6]==1):
-        print("operating clockwise rebalancing...")
-        r[0],r[4],clockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-1, src=src, trg=trg, channel_id = channel_id, rebalancing_amount=action[2])
-        if clockwise_result_bit == 1 :
-          print("clockwise offchain rebalancing ended successfully!")
-        else :
-          print("clockwise offchain rebalancing failed !")
-      else : 
-        r[0],r[4],clockwise_result_bit = 0,0,-1
+  def get_coeffiecients(self,action,transactions,src,trg,channel_id, simulation_amount, onchain_transaction_fee):
+        k = self.get_k(src,trg,channel_id,transactions)
+        tx = simulation_amount*k
+        rebalancing_fee, rebalancing_type  = self.operate_rebalancing(action[2],src,trg,channel_id,onchain_transaction_fee)
+        return k,tx, rebalancing_fee, rebalancing_type
 
-      if(action[7]==1):
-        print("operating counter-clockwise rebalancing...")
-        r[1],r[5],counterclockwise_result_bit = self.get_rebalancing_coefficients(rebalancing_type=-2, src=src, trg=trg, channel_id = channel_id, rebalancing_amount=action[3])
-        if counterclockwise_result_bit == 1 :
-          print("counter clockwise offchain rebalancing ended successfully!")
-        else :
-          print("counter clockwise offchain rebalancing failed !")
+
+
+  def operate_rebalancing(self,gamma,src,trg,channel_id,onchain_transaction_fee):
+    fee = 0
+    if gamma == 0 :
+      return 0,0  # no rebalancing
+    elif gamma > 0 :
+      rebalancing_type = -1 #clockwise
+    else :
+      rebalancing_type = -2 #counter-clockwise
+
+    
+    result_bit,cheapest_rebalancing_path, alpha_bar, beta_bar = self.find_rebalancing_cycle(rebalancing_type, src, trg, channel_id, gamma)
+    if result_bit == 1 :
+      cost = alpha_bar*gamma + beta_bar
+      if cost <= onchain_transaction_fee:
+        self.update_network_data(cheapest_rebalancing_path, gamma)
+        fee = cost
       else :
-        r[1],r[5],counterclockwise_result_bit = 0,0,-1
+        self.onchain_rebalancing(gamma,src,trg,channel_id)
+        fee = onchain_transaction_fee
+        rebalancing_type = -3 #onchain
+    else : 
+      self.onchain_rebalancing(gamma,src,trg,channel_id)
+      fee = onchain_transaction_fee
+      rebalancing_type = -3
 
-
-      r[2] = bitcoin_transaction_fee
-      return r,clockwise_result_bit,counterclockwise_result_bit
-
-
-  
-  def get_gamma_coeffiecients(self,action,transactions,src,trg,channel_id,simulation_amount):
-      k = self.get_k(src,trg,channel_id,transactions)
-      tx = simulation_amount*k
-      bitcoin_transaction_fee = self.onchain_rebalancing(action[4],action[5],src,trg,channel_id)
-      r,clockwise_result_bit,counterclockwise_result_bit = self.get_r(src,trg,channel_id,action,bitcoin_transaction_fee)
-      return k,tx,r,clockwise_result_bit,counterclockwise_result_bit
-
+    return fee, rebalancing_type
