@@ -279,29 +279,29 @@ class simulator():
 
       if rebalancing_type == -1 : #clockwise
           if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
-            return 0,0,-1
+            return 0,None,0,-1
 
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,trg,src,rebalancing_graph) 
           if result_bit == -1 :
-            return 0,0,-2
+            return 0,None,0,-2
             
           if result_bit == 1 :
             if cheapest_rebalancing_path == [trg,src] :
-              return 0,0,-2
+              return 0,None,0,-2
             cheapest_rebalancing_path.insert(0,src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
             
 
       elif rebalancing_type == -2 : #counter-clockwise
           if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
-            return 0,0,-1
+            return 0,None,0,-1
 
           cheapest_rebalancing_path,result_bit = self.run_single_transaction(-2,rebalancing_amount,src,trg,rebalancing_graph) 
           if result_bit == -1 :
-            return 0,0,-2
+            return 0,None,0,-2
           if result_bit == 1 :
             if cheapest_rebalancing_path == [src, trg] :
-              return 0,0,-2
+              return 0,None,0,-2
             cheapest_rebalancing_path.append(src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
             
