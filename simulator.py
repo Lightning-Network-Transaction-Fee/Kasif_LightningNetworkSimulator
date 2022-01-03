@@ -10,11 +10,11 @@ import os
 import time
 
 
-#invironment has an object of simulator
+#environment has an object of simulator
 class simulator():
   def __init__(self,
                src,trg,channel_id,
-               channel_data,capacity_map,                #dynamic not implimented
+               channel_data, capacity_map,
                merchants,
                count,
                amount,
@@ -26,7 +26,7 @@ class simulator():
     self.trg = trg
     self.channel_id = channel_id
     self.count = count
-    self.amout = amount
+    self.amount = amount
 
     self.merchants = merchants #list of merchants
     self.epsilon = epsilon    #ratio of marchant
@@ -34,7 +34,9 @@ class simulator():
     self.active_providers = active_providers
     self.channel_data = channel_data
     self.capacity_map = capacity_map
+
     self.graph = self.generate_graph(amount)
+    self.transactions = self.generate_transactions(amount, count)
  
 
  
@@ -63,49 +65,53 @@ class simulator():
 
 
 
-  def update_graph(self, src, trg, amount):
-
-        trg_src = self.channel_data[(trg,src)]
-        trg_src_capacity = trg_src[3]
-        trg_src_balance = trg_src[0]
-        src_trg_balance = trg_src_capacity - trg_src_balance
-        
-        if src_trg_balance <= amount :
-          self.graph.remove_edge(src,trg)
-        if trg_src_balance > amount :
-          self.graph.add_edge(trg, src, weight = self.calculate_weight(trg_src, amount))
-        
+  def update_graph(self, src, trg):
+      src_trg = self.channel_data[(src,trg)]
+      src_trg_balance = src_trg[0]
+      trg_src = self.channel_data[(trg,src)]
+      trg_src_balance = trg_src[0]
+      
+      if (src_trg_balance <= self.amount) and (self.graph.has_edge(src,trg)):
+        self.graph.remove_edge(src,trg)
+      else : 
+        self.graph.add_edge(src, trg, weight = self.calculate_weight(src_trg, self.amount))
+      
+      if (trg_src_balance <= self.amount) and (self.graph.has_edge(trg,src)) :
+        self.graph.remove_edge(trg,src)
+      else :   
+        self.graph.add_edge(trg, src, weight = self.calculate_weight(trg_src, self.amount))
+      
     
   
 
 
-  def update_channel_data(self, src, trg, amount):
-      self.channel_data[(src,trg)][0] = self.channel_data[(src,trg)][0] - amount
-      self.channel_data[(trg,src)][0] = self.channel_data[(trg,src)][0] + amount
+  def update_channel_data(self, src, trg, transaction_amount):
+      self.channel_data[(src,trg)][0] = self.channel_data[(src,trg)][0] - transaction_amount
+      self.channel_data[(trg,src)][0] = self.channel_data[(trg,src)][0] + transaction_amount
 
 
 
 
-  def update_network_data(self, path, amount):
+  def update_network_data(self, path, transaction_amount):
       for i in range(len(path)-1) :
         src = path[i]
         trg = path[i+1]
         if (src == self.src and trg == self.trg) or  (src == self.trg and trg == self.src) :
-          self.update_channel_data(src,trg,amount)
-          self.update_graph(src, trg, amount)
+          self.update_channel_data(src,trg,transaction_amount)
+          self.update_graph(src, trg)
           
           
             
+      
 
         
 
   def onchain_rebalancing(self,onchain_rebalancing_amount,src,trg,channel_id):
-    print("operating onchain rebalancing...")
     self.channel_data[(src,trg)][0] += onchain_rebalancing_amount  
     self.channel_data[(src,trg)][3] += onchain_rebalancing_amount   
     self.channel_data[(trg,src)][3] += onchain_rebalancing_amount   
-    print("onchain rebalancing ended successfully!")    
-
+    self.update_graph(src, trg)
+                
 
 
 
@@ -124,17 +130,11 @@ class simulator():
   def set_node_fee(self,src,trg,channel_id,action):
       alpha = action[0]
       beta = action[1]
-      src_trg = self.capacity_map[(src,trg)]
-      src_trg[1] = alpha
-      src_trg[2] = beta
-      src_trg2 = self.channel_data[(src,trg)]
-      src_trg2[1] = alpha
-      src_trg2[2] = beta
+      self.capacity_map[(src,trg)][1] = alpha
+      self.capacity_map[(src,trg)][2] = beta
+      self.channel_data[(src,trg)][1] = alpha
+      self.channel_data[(src,trg)][2] = beta
       
-      
-
-      
-
 
 
   def run_single_transaction(self,
@@ -158,7 +158,7 @@ class simulator():
 
  
   def run_simulation(self, count, amount, action):
-      print("simulating random transactions...")
+      #print("simulating random transactions...")
       
 
       #Graph Pre-Processing
@@ -168,7 +168,8 @@ class simulator():
 
 
       #Run Transactions
-      transactions = self.generate_transactions(amount, count)
+      #transactions = self.generate_transactions(amount, count)
+      transactions = self.transactions
       transactions = transactions.assign(path=None)
       transactions['path'] = transactions['path'].astype('object')
    
@@ -187,7 +188,7 @@ class simulator():
         elif result_bit == -1 : #failed transaction
             transactions.at[index,"result_bit"] = -1   
             transactions.at[index,"path"] = []
-      print("random transactions ended succussfully!")
+      # print("random transactions ended succussfully!")
       return transactions    #contains final result bits  #contains paths
 
 
@@ -255,6 +256,7 @@ class simulator():
 
 
   def get_total_fee(self,path) :
+    self.sync_capacity_map()
     alpha_bar = 0
     beta_bar = 0
     for i in range(len(path)-1):
@@ -268,41 +270,39 @@ class simulator():
 
 
   def find_rebalancing_cycle(self,rebalancing_type, src, trg, channel_id, rebalancing_amount):
-      rebalancing_graph = self.generate_graph(rebalancing_amount)   # weight(edges : balance < amount) = inf
-      
+      rebalancing_graph = self.generate_graph(rebalancing_amount)  
       cheapest_rebalancing_path = []
       
-
       alpha_bar = 0
       beta_bar = 0
       reult_bit = -1
 
       if rebalancing_type == -1 : #clockwise
-          if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
-            return 0,None,0,-1
+          if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not rebalancing_graph.has_edge(trg, src)):
+            return -1,None,0,0
 
-          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,trg,src,rebalancing_graph) 
+          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-1,rebalancing_amount,src,trg,rebalancing_graph) 
           if result_bit == -1 :
-            return 0,None,0,-2
+            return -1,None,0,0
             
           if result_bit == 1 :
-            if cheapest_rebalancing_path == [trg,src] :
-              return 0,None,0,-2
-            cheapest_rebalancing_path.insert(0,src)
+            if cheapest_rebalancing_path == [src,trg] :
+              return -1,None,0,0
+            cheapest_rebalancing_path.append(src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
             
 
       elif rebalancing_type == -2 : #counter-clockwise
-          if (not src in rebalancing_graph.nodes()) or (not trg in rebalancing_graph.nodes()) or (not self.graph.has_edge(trg, src)):
-            return 0,None,0,-1
+          if (not trg in rebalancing_graph.nodes()) or (not src in rebalancing_graph.nodes()) or (not rebalancing_graph.has_edge(src, trg)):
+            return -1,None,0,0
 
-          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-2,rebalancing_amount,src,trg,rebalancing_graph) 
+          cheapest_rebalancing_path,result_bit = self.run_single_transaction(-2,rebalancing_amount,trg,src,rebalancing_graph) 
           if result_bit == -1 :
-            return 0,None,0,-2
+            return -1,None,0,0
           if result_bit == 1 :
-            if cheapest_rebalancing_path == [src, trg] :
-              return 0,None,0,-2
-            cheapest_rebalancing_path.append(src)
+            if cheapest_rebalancing_path == [trg, src] :
+              return -1,None,0,0
+            cheapest_rebalancing_path.insert(0,src)
             alpha_bar,beta_bar = self.get_total_fee(cheapest_rebalancing_path)
             
    
@@ -328,23 +328,41 @@ class simulator():
       return 0,0  # no rebalancing
     elif gamma > 0 :
       rebalancing_type = -1 #clockwise
-    else :
-      rebalancing_type = -2 #counter-clockwise
-
-    
-    result_bit,cheapest_rebalancing_path, alpha_bar, beta_bar = self.find_rebalancing_cycle(rebalancing_type, src, trg, channel_id, gamma)
-    if result_bit == 1 :
-      cost = alpha_bar*gamma + beta_bar
-      if cost <= onchain_transaction_fee:
-        self.update_network_data(cheapest_rebalancing_path, gamma)
-        fee = cost
-      else :
+      result_bit,cheapest_rebalancing_path, alpha_bar, beta_bar = self.find_rebalancing_cycle(rebalancing_type, src, trg, channel_id, gamma)
+      if result_bit == 1 :
+        cost = alpha_bar*gamma + beta_bar
+        if cost <= onchain_transaction_fee:
+          self.update_network_data(cheapest_rebalancing_path, gamma)
+          fee = cost
+        else :
+          self.onchain_rebalancing(gamma,src,trg,channel_id)
+          fee = onchain_transaction_fee
+          rebalancing_type = -3 #onchain
+      
+      else : 
         self.onchain_rebalancing(gamma,src,trg,channel_id)
         fee = onchain_transaction_fee
-        rebalancing_type = -3 #onchain
-    else : 
-      self.onchain_rebalancing(gamma,src,trg,channel_id)
-      fee = onchain_transaction_fee
-      rebalancing_type = -3
+        rebalancing_type = -3
 
-    return fee, rebalancing_type
+      return fee, rebalancing_type
+
+    else :
+      rebalancing_type = -2 #counter-clockwise
+      gamma = gamma*-1    
+      result_bit,cheapest_rebalancing_path, alpha_bar, beta_bar = self.find_rebalancing_cycle(rebalancing_type, src, trg, channel_id, gamma)
+      if result_bit == 1 :
+        cost = alpha_bar*gamma + beta_bar
+        if cost <= onchain_transaction_fee:
+          self.update_network_data(cheapest_rebalancing_path, gamma)
+          fee = cost
+        else :
+          self.onchain_rebalancing(gamma,trg,src,channel_id)
+          fee = onchain_transaction_fee
+          rebalancing_type = -3 #onchain
+      
+      elif result_bit == -1: 
+        self.onchain_rebalancing(gamma,trg,src,channel_id)
+        fee = onchain_transaction_fee
+        rebalancing_type = -3
+
+      return fee, rebalancing_type
